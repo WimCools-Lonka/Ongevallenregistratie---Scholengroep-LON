@@ -395,19 +395,21 @@ var CFG = {
 };
 
 // ── MSAL INITIALISATIE ────────────────────────────────────────────────
-var msalApp = new msal.PublicClientApplication({
-  auth: {
-    clientId:    CFG.clientId,
-    authority:   'https://login.microsoftonline.com/' + CFG.tenantId,
-    redirectUri: CFG.redirectUri
-  },
-  cache: { cacheLocation: 'sessionStorage' }
-});
+var msalApp = null;
 
 var huidigAccount = null;
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
 async function msalInit() {
+  msalApp = new msal.PublicClientApplication({
+    auth: {
+      clientId:    CFG.clientId,
+      authority:   'https://login.microsoftonline.com/' + CFG.tenantId,
+      redirectUri: CFG.redirectUri
+    },
+    cache: { cacheLocation: 'sessionStorage' }
+  });
+  await msalApp.initialize();
   // Initialiseer Teams SDK indien beschikbaar
   try {
     if (window.microsoftTeams) {

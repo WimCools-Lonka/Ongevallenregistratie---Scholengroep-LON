@@ -207,19 +207,21 @@ var CFG = {
 };
 
 // ── MSAL ──────────────────────────────────────────────────────────────
-var msalApp = new msal.PublicClientApplication({
-  auth: {
-    clientId:    CFG.clientId,
-    authority:   'https://login.microsoftonline.com/' + CFG.tenantId,
-    redirectUri: CFG.redirectUri
-  },
-  cache: { cacheLocation: 'sessionStorage' }
-});
+var msalApp = null;
 
 var huidigAccount = null;
 var allRecords = [];
 
 async function msalInit() {
+  msalApp = new msal.PublicClientApplication({
+    auth: {
+      clientId:    CFG.clientId,
+      authority:   'https://login.microsoftonline.com/' + CFG.tenantId,
+      redirectUri: CFG.redirectUri
+    },
+    cache: { cacheLocation: 'sessionStorage' }
+  });
+  await msalApp.initialize();
   try {
     var resp = await msalApp.handleRedirectPromise();
     if (resp) huidigAccount = resp.account;
@@ -579,7 +581,7 @@ function exportCSV() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-msalInit();
+document.addEventListener('DOMContentLoaded', function() { msalInit(); });
 </script>
 </body>
 </html>
