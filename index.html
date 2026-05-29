@@ -779,6 +779,13 @@ async function submitForm(){
   }
 }
 
+// ── OPSTARTEN ─────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  msalInit().catch(function(e) {
+    document.getElementById('loginStatus').innerHTML =
+      '<div class="notice n-err">Initialisatiefout: ' + e.message + '</div>';
+  });
+});
 
 </script>
 </body>
