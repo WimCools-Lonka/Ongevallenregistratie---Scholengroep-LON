@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ongevallenregistratie – Scholengroep Londerzeel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#1a1a1a;background:#f0f4f8;min-height:100vh}
+.app{max-width:820px;margin:0 auto;padding:1.5rem 1rem}
+.topbar{background:#0C447C;color:#fff;padding:13px 20px;border-radius:8px;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.topbar h1{font-size:15px;font-weight:700}
+.topbar-r{display:flex;align-items:center;gap:8px;font-size:12px}
+.schoolBadge{background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700}
+.tbBtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit}
+.tbBtn:hover{background:rgba(255,255,255,.25)}
+.progBar{display:flex;gap:4px;margin-bottom:4px}
+.progDot{flex:1;height:5px;border-radius:3px;background:#ddd}
+.progDot.done{background:#3B6D11}.progDot.cur{background:#378ADD}
+.progLbl{font-size:12px;color:#888;margin-bottom:1.25rem}
+.sec{display:none}.sec.on{display:block}
+.card{background:#fff;border-radius:10px;border:1px solid #dde3ea;padding:1.25rem;margin-bottom:1rem}
+.secHead{display:flex;align-items:center;gap:10px;margin-bottom:1.1rem}
+.secNum{width:28px;height:28px;border-radius:50%;background:#0C447C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.secTitle{font-size:15px;font-weight:700;color:#0C447C}
+.fg{margin-bottom:.9rem}
+.fglbl{display:block;font-size:13px;color:#444;font-weight:600;margin-bottom:5px}
+input[type=text],input[type=date],input[type=time],input[type=email],input[type=url],textarea,select{width:100%;padding:8px 11px;border:1px solid #bbb;border-radius:6px;font-size:14px;font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a}
+input:focus,textarea:focus,select:focus{border-color:#0C447C;outline:none;box-shadow:0 0 0 2px rgba(12,68,124,.12)}
+input[readonly]{background:#eef2f6;color:#555;cursor:default}
+textarea{min-height:80px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.ch{padding:6px 14px;border:1.5px solid #bbb;border-radius:20px;cursor:pointer;font-size:13px;background:#fff;color:#333;user-select:none;transition:all .1s}
+.ch:hover{border-color:#0C447C;color:#0C447C}
+.ch.on{background:#0C447C;border-color:#0C447C;color:#fff;font-weight:700}
+.sevGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}
+.sevCard{border:2px solid #ddd;border-radius:8px;padding:12px;cursor:pointer;text-align:center;background:#fff;transition:all .15s}
+.sevCard:hover{border-color:#888}
+.sevCard.licht{background:#EAF3DE;border-color:#3B6D11;color:#27500A}
+.sevCard.matig{background:#FAEEDA;border-color:#854F0B;color:#633806}
+.sevCard.ernstig{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
+.sevLbl{font-weight:700;font-size:13px;margin-top:4px}.sevSub{font-size:11px;opacity:.75;margin-top:2px}
+.mtbl{border:1px solid #dde3ea;border-radius:8px;overflow:hidden;margin-top:5px}
+.mhdr{display:grid;background:#eef2f6;padding:8px 12px;font-size:12px;font-weight:700;color:#555;border-bottom:1px solid #dde3ea}
+.mrow{display:grid;gap:7px;padding:8px 12px;border-top:1px solid #e8ecf0;background:#fff}
+.g3{grid-template-columns:2fr 1.5fr 1fr}.g4{grid-template-columns:2fr 1.5fr 1.5fr 1fr}
+.addBtn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px dashed #bbb;border-radius:7px;background:transparent;cursor:pointer;font-size:13px;color:#666;margin-top:8px;width:100%}
+.addBtn:hover{background:#f5f7fa}
+.delBtn{background:transparent;border:none;cursor:pointer;color:#bbb;font-size:16px;padding:2px 6px}
+.delBtn:hover{color:#c0392b}
+.navRow{display:flex;justify-content:space-between;align-items:center;margin-top:1.25rem;padding-top:1.1rem;border-top:1px solid #e8ecf0;flex-wrap:wrap;gap:8px}
+.btnP{background:#0C447C;color:#fff;border:none;border-radius:7px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:700}
+.btnP:hover{background:#185FA5}
+.btnP:disabled{background:#aaa;cursor:default}
+.btnS{background:#fff;border:1.5px solid #bbb;border-radius:7px;padding:10px 20px;font-size:14px;cursor:pointer;color:#333}
+.btnS:hover{background:#f5f7fa}
+.notice{border-radius:7px;padding:11px 15px;font-size:13px;margin-bottom:1rem}
+.n-ok{background:#EAF3DE;color:#27500A;border:1px solid #C0DD97}
+.n-warn{background:#FAEEDA;color:#7a4500;border:1px solid #FAC775}
+.n-err{background:#FCEBEB;color:#791F1F;border:1px solid #F7C1C1}
+.n-info{background:#E6F1FB;color:#0C447C;border:1px solid #B5D4F4}
+.badge{display:inline-block;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700}
+.b-licht{background:#EAF3DE;color:#27500A}.b-matig{background:#FAEEDA;color:#7a4500}.b-ernstig{background:#FCEBEB;color:#791F1F}
+.sumCard{background:#f8f9fb;border-radius:8px;padding:1rem;margin-bottom:.9rem;border:1px solid #e8ecf0}
+.sumCard h4{font-size:11px;font-weight:700;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px}
+.sr{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #eee;gap:8px}
+.sr:last-child{border-bottom:none}
+.sk{color:#666}.sv{font-weight:600;text-align:right}
+.confirmBox{text-align:center;padding:2.5rem 1rem}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #ddd;border-top-color:#0C447C;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Schoolkiezer */
+.overlay{position:fixed;inset:0;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:2rem}
+.overlay.hide{display:none}
+.skGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;max-width:540px;width:100%}
+.skCard{background:#fff;border:1.5px solid #dde3ea;border-radius:12px;padding:20px 16px;cursor:pointer;text-align:center;transition:all .15s}
+.skCard:hover{border-color:#0C447C;background:#E6F1FB;transform:translateY(-2px)}
+.skIco{font-size:30px;margin-bottom:8px}
+.skNaam{font-size:14px;font-weight:700;color:#0C447C}
+/* Instellingen */
+.cfgWrap{max-width:820px;margin:0 auto;padding:1.5rem 1rem}
+@media(max-width:560px){.two,.sevGrid,.g3,.g4{grid-template-columns:1fr!important}.skGrid{grid-template-columns:1fr 1fr!important}}
+</style>
+</head>
+<body>
+
+<!-- SCHOOLKIEZER -->
+<div class="overlay" id="skolKiezer">
+  <div style="font-size:40px;margin-bottom:1rem">📋</div>
+  <div style="font-size:20px;font-weight:700;color:#0C447C;margin-bottom:.5rem;text-align:center">Ongevallenregistratie</div>
+  <div style="font-size:14px;color:#777;margin-bottom:1.75rem;text-align:center">Scholengroep Londerzeel — Kies uw school</div>
+  <div class="skGrid">
+    <div class="skCard" onclick="kiesSchool('cs','Centrumschool','CS',['LJS','STS'],'LIST_ID_CS')">
+      <div class="skIco">🏫</div><div class="skNaam">Centrumschool</div>
+    </div>
+    <div class="skCard" onclick="kiesSchool('ks','Kouterschool','KS',[],'LIST_ID_KS')">
+      <div class="skIco">🌾</div><div class="skNaam">Kouterschool</div>
+    </div>
+    <div class="skCard" onclick="kiesSchool('te','School Ter Elst','TE',[],'LIST_ID_TE')">
+      <div class="skIco">🌿</div><div class="skNaam">School Ter Elst</div>
+    </div>
+  </div>
+  <button class="btnS" style="margin-top:1.5rem" onclick="toonCfg()">⚙ Instellingen</button>
+</div>
+
+<!-- VESTIGING KIEZER -->
+<div class="overlay hide" id="vestKiezer">
+  <div style="font-size:40px;margin-bottom:1rem">📍</div>
+  <div style="font-size:20px;font-weight:700;color:#0C447C;margin-bottom:.5rem;text-align:center" id="vestTitel">Kies vestiging</div>
+  <div class="skGrid" id="vestGrid" style="max-width:360px"></div>
+  <button class="btnS" style="margin-top:1.5rem" onclick="toonSchoolKiezer()">← Andere school</button>
+</div>
+
+<!-- INSTELLINGEN -->
+<div class="overlay hide" id="cfgScherm">
+  <div style="background:#fff;border-radius:12px;border:1px solid #dde3ea;padding:1.5rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:16px;font-weight:700;color:#0C447C">⚙ Instellingen — Graph API</h2>
+      <button class="delBtn" style="font-size:20px" onclick="toonSchoolKiezer()">✕</button>
+    </div>
+    <div class="notice n-info" style="font-size:12px">Vul de waarden in uit de Azure App Registration. Ze worden lokaal opgeslagen.</div>
+    <div class="fg"><span class="fglbl">Tenant ID</span><input type="text" id="cfg-tid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">Client ID (Application ID)</span><input type="text" id="cfg-cid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">Client Secret</span><input type="text" id="cfg-sec" placeholder="Plak hier de secret value"></div>
+    <div class="fg"><span class="fglbl">Site ID (SharePoint)</span><input type="text" id="cfg-sid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">List ID — Centrumschool</span><input type="text" id="cfg-lid-cs" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">List ID — Kouterschool</span><input type="text" id="cfg-lid-ks" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">List ID — School Ter Elst</span><input type="text" id="cfg-lid-te" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+    <div class="fg"><span class="fglbl">E-mailadres afzender (mailSender)</span><input type="email" id="cfg-mail" placeholder="noreply@school.be (moet M365 account zijn)"></div>
+    <div class="fg"><span class="fglbl">E-mail directie — Centrumschool</span><input type="email" id="cfg-dir-cs" placeholder="directie.centrumschool@londerwijs.be"></div>
+    <div class="fg"><span class="fglbl">E-mail directie — Kouterschool</span><input type="email" id="cfg-dir-ks" placeholder="directie.kouterschool@londerwijs.be"></div>
+    <div class="fg"><span class="fglbl">E-mail directie — School Ter Elst</span><input type="email" id="cfg-dir-te" placeholder="directie.terelst@londerwijs.be"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btnP" onclick="slaCfgOp()">💾 Opslaan</button>
+      <button class="btnS" onclick="testGraph()">🔌 Verbinding testen</button>
+    </div>
+    <div id="cfgStatus" style="margin-top:.75rem"></div>
+  </div>
+</div>
+
+<!-- HOOFDAPP -->
+<div class="app" id="hoofdApp" style="display:none">
+<div class="topbar">
+  <h1>Ongevallenregistratie</h1>
+  <div class="topbar-r">
+    <span class="schoolBadge" id="topSchool"></span>
+    <button class="tbBtn" onclick="toonSchoolKiezer()">↩ School</button>
+    <button class="tbBtn" onclick="toonCfg()">⚙</button>
+  </div>
+</div>
+<div class="progBar" id="progBar"></div>
+<div class="progLbl" id="progLbl"></div>
+
+<!-- STAP 1 -->
+<div class="sec on" id="sec1">
+  <div class="card">
+    <div class="secHead"><div class="secNum">1</div><div class="secTitle">Algemene gegevens</div></div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Vestiging</span><input type="text" id="vestiging" readonly></div>
+      <div class="fg"><span class="fglbl">Registratienummer (automatisch)</span><input type="text" id="regnr" readonly placeholder="Wordt aangemaakt..."></div>
+    </div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Datum registratie</span><input type="date" id="datumReg"></div>
+      <div class="fg"><span class="fglbl">Naam registrerende persoon</span><input type="text" id="naamReg" placeholder="Volledige naam"></div>
+    </div>
+    <div class="fg"><span class="fglbl">Functie registrerende persoon</span>
+      <div class="chips" id="grp-functie">
+        <div class="ch" onclick="pickR('functie',this)">Leerkracht</div>
+        <div class="ch" onclick="pickR('functie',this)">Directie</div>
+        <div class="ch" onclick="pickR('functie',this)">Secretariaat</div>
+        <div class="ch" onclick="pickR('functie',this)">Toezichter</div>
+        <div class="ch" onclick="pickR('functie',this)">Andere</div>
+      </div>
+    </div>
+  </div>
+  <div class="navRow"><span></span><button class="btnP" onclick="goSec(2)">Volgende →</button></div>
+</div>
+
+<!-- STAP 2 -->
+<div class="sec" id="sec2">
+  <div class="card">
+    <div class="secHead"><div class="secNum">2</div><div class="secTitle">Gegevens betrokkene</div></div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Naam betrokkene</span><input type="text" id="naamBet" placeholder="Volledige naam"></div>
+      <div class="fg"><span class="fglbl">Geboortedatum (bij leerling)</span><input type="date" id="gebdat"></div>
+    </div>
+    <div class="fg"><span class="fglbl">Rol</span>
+      <div class="chips" id="grp-rol">
+        <div class="ch" onclick="pickR('rol',this)">Leerling</div>
+        <div class="ch" onclick="pickR('rol',this)">Personeelslid</div>
+        <div class="ch" onclick="pickR('rol',this)">Bezoeker</div>
+        <div class="ch" onclick="pickR('rol',this)">Andere</div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Klas / functie</span><input type="text" id="klas" placeholder="Bijv. 3A"></div>
+      <div class="fg"><span class="fglbl">Contactgegevens</span><input type="text" id="contact" placeholder="Tel. of e-mail"></div>
+    </div>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(1)">← Vorige</button><button class="btnP" onclick="goSec(3)">Volgende →</button></div>
+</div>
+
+<!-- STAP 3 -->
+<div class="sec" id="sec3">
+  <div class="card">
+    <div class="secHead"><div class="secNum">3</div><div class="secTitle">Feitelijke gegevens van het ongeval</div></div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Datum van het ongeval</span><input type="date" id="datumOng"></div>
+      <div class="fg"><span class="fglbl">Tijdstip</span><input type="time" id="tijdstip"></div>
+    </div>
+    <div class="fg"><span class="fglbl">Plaats van het ongeval</span>
+      <div class="chips" id="grp-plaats">
+        <div class="ch" onclick="pickR('plaats',this)">Klaslokaal</div>
+        <div class="ch" onclick="pickR('plaats',this)">Speelplaats</div>
+        <div class="ch" onclick="pickR('plaats',this)">Turnzaal</div>
+        <div class="ch" onclick="pickR('plaats',this)">Gang</div>
+        <div class="ch" onclick="pickR('plaats',this)">Sanitair</div>
+        <div class="ch" onclick="pickR('plaats',this)">Uitstap</div>
+        <div class="ch" onclick="pickR('plaats',this)">Andere</div>
+      </div>
+    </div>
+    <div class="fg"><span class="fglbl">Activiteit op moment van het ongeval</span><input type="text" id="activiteit" placeholder="Bijv. vrij spel, turnles..."></div>
+    <div class="fg"><span class="fglbl">Beschrijving van het ongeval (objectief, feitelijk)</span><textarea id="beschrijving" placeholder="Beschrijf wat er precies is voorgevallen..."></textarea></div>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(2)">← Vorige</button><button class="btnP" onclick="goSec(4)">Volgende →</button></div>
+</div>
+
+<!-- STAP 4 -->
+<div class="sec" id="sec4">
+  <div class="card">
+    <div class="secHead"><div class="secNum">4</div><div class="secTitle">Aard en ernst van het letsel</div></div>
+    <div class="fg"><span class="fglbl">Soort letsel (meerdere mogelijk)</span>
+      <div class="chips" id="grp-letsel">
+        <div class="ch" onclick="pickM(this)">Schaafwonde</div><div class="ch" onclick="pickM(this)">Snijwonde</div>
+        <div class="ch" onclick="pickM(this)">Kneuzing</div><div class="ch" onclick="pickM(this)">Verstuiking</div>
+        <div class="ch" onclick="pickM(this)">Breuk</div><div class="ch" onclick="pickM(this)">Hoofdletsel</div>
+        <div class="ch" onclick="pickM(this)">Andere</div>
+      </div>
+    </div>
+    <div class="fg"><span class="fglbl">Ernstinschatting</span>
+      <div class="sevGrid">
+        <div class="sevCard" id="sev-licht" onclick="pickSev('licht')"><div style="font-size:20px">🟢</div><div class="sevLbl">Licht</div><div class="sevSub">EHBO ter plaatse</div></div>
+        <div class="sevCard" id="sev-matig" onclick="pickSev('matig')"><div style="font-size:20px">🟡</div><div class="sevLbl">Matig</div><div class="sevSub">Artsbezoek aanbevolen</div></div>
+        <div class="sevCard" id="sev-ernstig" onclick="pickSev('ernstig')"><div style="font-size:20px">🔴</div><div class="sevLbl">Ernstig</div><div class="sevSub">Spoed / ziekenhuis</div></div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">EHBO verleend door</span><input type="text" id="ehbo" placeholder="Naam"></div>
+      <div class="fg"><span class="fglbl">Doorverwijzing</span>
+        <div class="chips" id="grp-doorv">
+          <div class="ch" onclick="pickR('doorv',this)">Nee</div>
+          <div class="ch" onclick="pickR('doorv',this)">Arts</div>
+          <div class="ch" onclick="pickR('doorv',this)">Spoed</div>
+          <div class="ch" onclick="pickR('doorv',this)">Ziekenhuis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(3)">← Vorige</button><button class="btnP" onclick="goSec(5)">Volgende →</button></div>
+</div>
+
+<!-- STAP 5 -->
+<div class="sec" id="sec5">
+  <div class="card">
+    <div class="secHead"><div class="secNum">5–6</div><div class="secTitle">Getuigen &amp; oorzaakanalyse</div></div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Naam/namen getuigen</span><input type="text" id="getuigen" placeholder="Namen"></div>
+      <div class="fg"><span class="fglbl">Functie / relatie getuige(n)</span><input type="text" id="getuigenFunctie" placeholder="Bijv. leerkracht, leerling..."></div>
+    </div>
+    <div class="fg"><span class="fglbl">Vermoedelijke oorzaak (meerdere mogelijk)</span>
+      <div class="chips" id="grp-oorzaak">
+        <div class="ch" onclick="pickM(this)">Onvoorzichtig gedrag</div>
+        <div class="ch" onclick="pickM(this)">Onvoldoende toezicht</div>
+        <div class="ch" onclick="pickM(this)">Infrastructuur</div>
+        <div class="ch" onclick="pickM(this)">Materiaal / toestel</div>
+        <div class="ch" onclick="pickM(this)">Organisatorisch</div>
+        <div class="ch" onclick="pickM(this)">Andere</div>
+      </div>
+    </div>
+    <div class="fg"><span class="fglbl">Toelichting oorzaak</span><textarea id="oorzToel" placeholder="Bijkomende uitleg..."></textarea></div>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(4)">← Vorige</button><button class="btnP" onclick="goSec(6)">Volgende →</button></div>
+</div>
+
+<!-- STAP 6 -->
+<div class="sec" id="sec6">
+  <div class="card">
+    <div class="secHead"><div class="secNum">7</div><div class="secTitle">Corrigerende maatregelen (kortetermijn)</div></div>
+    <p style="font-size:13px;color:#666;margin-bottom:10px">Onmiddellijke acties om herhaling te vermijden.</p>
+    <div class="mtbl"><div class="mhdr g3"><span>Maatregel</span><span>Verantwoordelijke</span><span>Datum</span></div><div id="corRows"></div></div>
+    <button class="addBtn" onclick="addMRow('cor')">+ Maatregel toevoegen</button>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(5)">← Vorige</button><button class="btnP" onclick="goSec(7)">Volgende →</button></div>
+</div>
+
+<!-- STAP 7 -->
+<div class="sec" id="sec7">
+  <div class="card">
+    <div class="secHead"><div class="secNum">8</div><div class="secTitle">Preventieve maatregelen (structureel)</div></div>
+    <p style="font-size:13px;color:#666;margin-bottom:10px">Structurele acties om gelijkaardige ongevallen te voorkomen.</p>
+    <div class="mtbl"><div class="mhdr g4"><span>Maatregel</span><span>Type</span><span>Verantwoordelijke</span><span>Streefdatum</span></div><div id="prevRows"></div></div>
+    <button class="addBtn" onclick="addMRow('prev')">+ Maatregel toevoegen</button>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(6)">← Vorige</button><button class="btnP" onclick="goSec(8)">Volgende →</button></div>
+</div>
+
+<!-- STAP 8 -->
+<div class="sec" id="sec8">
+  <div class="card">
+    <div class="secHead"><div class="secNum">9</div><div class="secTitle">Evaluatie en opvolging</div></div>
+    <div class="fg"><span class="fglbl">Besproken in</span>
+      <div class="chips" id="grp-besproken">
+        <div class="ch" onclick="pickM(this)">Directie</div><div class="ch" onclick="pickM(this)">Zorgoverleg</div>
+        <div class="ch" onclick="pickM(this)">Team</div><div class="ch" onclick="pickM(this)">CPBW</div>
+        <div class="ch" onclick="pickM(this)">Andere</div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="fg"><span class="fglbl">Datum bespreking</span><input type="date" id="datumBesp"></div>
+      <div class="fg"><span class="fglbl">Status</span>
+        <div class="chips" id="grp-status">
+          <div class="ch" onclick="pickR('status',this)">Open</div>
+          <div class="ch" onclick="pickR('status',this)">In uitvoering</div>
+          <div class="ch" onclick="pickR('status',this)">Afgesloten</div>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><span class="fglbl">Besluit / evaluatie</span><textarea id="besluit" placeholder="Samenvatting van het besluit..."></textarea></div>
+    <div class="fg"><span class="fglbl">Datum afsluiting</span><input type="date" id="datumAfsl" style="max-width:220px"></div>
+  </div>
+  <div class="navRow"><button class="btnS" onclick="goSec(7)">← Vorige</button><button class="btnP" onclick="goSec(9)">Naar samenvatting →</button></div>
+</div>
+
+<!-- STAP 9: SAMENVATTING -->
+<div class="sec" id="sec9">
+  <div id="sevBanner" style="margin-bottom:1rem"></div>
+  <div id="sumContent"></div>
+  <div id="emailBlock" style="display:none">
+    <div class="card">
+      <div class="fg"><span class="fglbl">E-mailadres directie (automatische melding)</span><input type="email" id="emailDir" placeholder="directie@school.be"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="two">
+      <div class="fg"><span class="fglbl">Handtekening registrerende</span><input type="text" id="handReg" placeholder="Typ naam als digitale bevestiging"></div>
+      <div class="fg"><span class="fglbl">Handtekening directie</span><input type="text" id="handDir" placeholder="Naam directie"></div>
+    </div>
+  </div>
+  <div id="submitStatus"></div>
+  <div class="navRow">
+    <button class="btnS" onclick="goSec(8)">← Terug</button>
+    <button class="btnP" id="submitBtn" onclick="submitForm()">✓ Indienen &amp; opslaan</button>
+  </div>
+</div>
+
+<!-- STAP 10: BEVESTIGING -->
+<div class="sec" id="sec10">
+  <div class="card">
+    <div class="confirmBox">
+      <div style="font-size:50px;margin-bottom:1rem">✅</div>
+      <h2 style="font-size:19px;font-weight:700;margin-bottom:.5rem;color:#0C447C">Registratie ingediend</h2>
+      <p style="color:#555;font-size:14px;margin-bottom:.5rem" id="confirmMsg"></p>
+      <p style="color:#888;font-size:13px;margin-bottom:1.5rem">De gegevens zijn rechtstreeks opgeslagen in SharePoint via Microsoft Graph.</p>
+      <button class="btnP" onclick="resetForm()">+ Nieuw formulier invullen</button>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<script>
+
+// ── MICROSOFT GRAPH API ───────────────────────────────────────────────
+var GRAPH_CFG = {
+  tenantId:    '655d15e1-e5fc-4868-8462-8463dc0ff014',
+  clientId:    '8976d00b-226c-404d-a1ab-811cea7c93d7',
+  clientSecret:'QGh8Q~uw7ygoZZy.q7Ks6qu96iuUS3jv23vswapO',
+  siteId:      '89dc1d04-ed8d-4038-82c7-0428db0483e7',
+  listId_cs:   '1d7969fa-d2ff-4289-a7b5-15f82d79606f',
+  listId_ks:   '1f5df4dd-36e9-4032-a12f-be3c2eb85f62',
+  listId_te:   'ea66cd45-2712-4449-8cc4-7b2a3b25af02',
+  mailSender:  'secretariaatlonka@centrumschool.londerzeel.be',
+  mailDir_cs:  'directie@centrumschool.londerzeel.be',
+  mailDir_ks:  'directie@kouterschool.londerzeel.be',
+  mailDir_te:  'directie@terelst.londerzeel.be',
+};
+var _token = null;
+var _tokenExp = 0;
+
+function laadCfg() {
+  try { GRAPH_CFG = JSON.parse(localStorage.getItem('graph_l') || '{}'); } catch(e) {}
+}
+
+async function getToken() {
+  if (_token && Date.now() < _tokenExp - 60000) return _token;
+  var c = GRAPH_CFG;
+  if (!c.clientId || !c.tenantId || !c.clientSecret)
+    throw new Error('Graph API niet geconfigureerd. Open Instellingen.');
+  var r = await fetch(
+    'https://login.microsoftonline.com/' + c.tenantId + '/oauth2/v2.0/token',
+    { method:'POST', body: new URLSearchParams({
+        grant_type:'client_credentials', client_id:c.clientId,
+        client_secret:c.clientSecret, scope:'https://graph.microsoft.com/.default'
+    })}
+  );
+  var d = await r.json();
+  if (!d.access_token) throw new Error(d.error_description || 'Token mislukt');
+  _token = d.access_token;
+  _tokenExp = Date.now() + d.expires_in * 1000;
+  return _token;
+}
+
+async function graphPost(lijstId, velden) {
+  var t = await getToken();
+  var r = await fetch(
+    'https://graph.microsoft.com/v1.0/sites/' + GRAPH_CFG.siteId + '/lists/' + lijstId + '/items',
+    { method:'POST',
+      headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
+      body: JSON.stringify({fields: velden})
+    }
+  );
+  if (!r.ok) { var e=await r.json().catch(()=>{}); throw new Error((e&&e.error&&e.error.message)||r.status); }
+  return r.json();
+}
+
+async function graphMail(aan, onderwerp, body) {
+  if (!GRAPH_CFG.mailSender || !aan) return;
+  var t = await getToken();
+  await fetch('https://graph.microsoft.com/v1.0/users/' + GRAPH_CFG.mailSender + '/sendMail',
+    { method:'POST',
+      headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json'},
+      body: JSON.stringify({ message:{
+        subject: onderwerp,
+        body:{ contentType:'HTML', content:body },
+        toRecipients: aan.split(',').map(e=>({emailAddress:{address:e.trim()}}))
+      }})
+    }
+  );
+}
+
+async function graphLees(lijstId) {
+  var t = await getToken();
+  var r = await fetch(
+    'https://graph.microsoft.com/v1.0/sites/' + GRAPH_CFG.siteId + '/lists/' + lijstId + '/items?expand=fields&$top=500',
+    { headers:{'Authorization':'Bearer '+t} }
+  );
+  if (!r.ok) throw new Error('Lezen mislukt: ' + r.status);
+  var d = await r.json();
+  return (d.value||[]).map(i=>i.fields);
+}
+
+
+var curSec=1,TOTAL=9,sev='',corC=0,prevC=0;
+var SCHOOL_ID='',SCHOOL_NAAM='',SCHOOL_AFW='',SCHOOL_VEST='',SCHOOL_LIJST='';
+var seqNrs={};
+try{seqNrs=JSON.parse(localStorage.getItem('seq_l')||'{}');}catch(e){}
+
+// ── CFG ──────────────────────────────────────────────────────────────
+function laadCfgForm(){
+  var c=GRAPH_CFG;
+  document.getElementById('cfg-tid').value=c.tenantId||'';
+  document.getElementById('cfg-cid').value=c.clientId||'';
+  document.getElementById('cfg-sec').value=c.clientSecret||'';
+  document.getElementById('cfg-sid').value=c.siteId||'';
+  document.getElementById('cfg-lid-cs').value=c.listId_cs||'';
+  document.getElementById('cfg-lid-ks').value=c.listId_ks||'';
+  document.getElementById('cfg-lid-te').value=c.listId_te||'';
+  document.getElementById('cfg-mail').value=c.mailSender||'';
+  document.getElementById('cfg-dir-cs').value=c.mailDir_cs||'';
+  document.getElementById('cfg-dir-ks').value=c.mailDir_ks||'';
+  document.getElementById('cfg-dir-te').value=c.mailDir_te||'';
+}
+
+function slaCfgOp(){
+  GRAPH_CFG={
+    tenantId:   document.getElementById('cfg-tid').value.trim(),
+    clientId:   document.getElementById('cfg-cid').value.trim(),
+    clientSecret:document.getElementById('cfg-sec').value.trim(),
+    siteId:     document.getElementById('cfg-sid').value.trim(),
+    listId_cs:  document.getElementById('cfg-lid-cs').value.trim(),
+    listId_ks:  document.getElementById('cfg-lid-ks').value.trim(),
+    listId_te:  document.getElementById('cfg-lid-te').value.trim(),
+    mailSender: document.getElementById('cfg-mail').value.trim(),
+    mailDir_cs: document.getElementById('cfg-dir-cs').value.trim(),
+    mailDir_ks: document.getElementById('cfg-dir-ks').value.trim(),
+    mailDir_te: document.getElementById('cfg-dir-te').value.trim(),
+  };
+  _token=null; _tokenExp=0;
+  try{localStorage.setItem('graph_l',JSON.stringify(GRAPH_CFG));}catch(e){}
+  document.getElementById('cfgStatus').innerHTML='<div class="notice n-ok" style="margin-top:.5rem">✓ Opgeslagen.</div>';
+}
+
+async function testGraph(){
+  slaCfgOp();
+  var st=document.getElementById('cfgStatus');
+  st.innerHTML='<div class="notice n-info" style="margin-top:.5rem"><span class="spinner"></span> Verbinding testen...</div>';
+  try{
+    await getToken();
+    st.innerHTML='<div class="notice n-ok" style="margin-top:.5rem">✓ Token ophalen geslaagd. Graph API verbinding werkt.</div>';
+  }catch(e){
+    st.innerHTML='<div class="notice n-err" style="margin-top:.5rem">✕ '+e.message+'</div>';
+  }
+}
+
+function toonCfg(){
+  document.getElementById('skolKiezer').classList.add('hide');
+  document.getElementById('vestKiezer').classList.add('hide');
+  document.getElementById('cfgScherm').classList.remove('hide');
+  document.getElementById('hoofdApp').style.display='none';
+  laadCfgForm();
+}
+
+function toonSchoolKiezer(){
+  document.getElementById('cfgScherm').classList.add('hide');
+  document.getElementById('vestKiezer').classList.add('hide');
+  document.getElementById('skolKiezer').classList.remove('hide');
+  document.getElementById('hoofdApp').style.display='none';
+}
+
+// ── SCHOOLKIEZER ──────────────────────────────────────────────────────
+function kiesSchool(id,naam,afk,vestigingen,lijstId){
+  SCHOOL_ID=id; SCHOOL_NAAM=naam; SCHOOL_AFW=afk;
+  SCHOOL_LIJST=GRAPH_CFG['listId_'+id]||lijstId;
+  if(vestigingen&&vestigingen.length>0){
+    document.getElementById('vestTitel').textContent=naam+' — Kies vestiging';
+    var g=document.getElementById('vestGrid');
+    g.innerHTML=vestigingen.map(function(v){
+      return '<div class="skCard" data-vest="' + v + '" onclick="kiesVest(this.dataset.vest)"><div class="skIco">&#128205;</div><div class="skNaam">' + v + '</div></div>';
+    }).join('');
+    document.getElementById('skolKiezer').classList.add('hide');
+    document.getElementById('vestKiezer').classList.remove('hide');
+  } else {
+    SCHOOL_VEST='';
+    startApp();
+  }
+}
+
+function kiesVest(vest){
+  SCHOOL_VEST=vest;
+  startApp();
+}
+
+function startApp(){
+  document.getElementById('vestKiezer').classList.add('hide');
+  document.getElementById('skolKiezer').classList.add('hide');
+  document.getElementById('hoofdApp').style.display='block';
+  var badge=SCHOOL_NAAM+(SCHOOL_VEST?' · '+SCHOOL_VEST:'');
+  document.getElementById('topSchool').textContent=badge;
+  document.getElementById('vestiging').value=SCHOOL_VEST||SCHOOL_AFW;
+  updateRegnr();
+  updateProg();
+  goSec(1);
+}
+
+// ── FORMULIER ────────────────────────────────────────────────────────
+function updateProg(){
+  var bar=document.getElementById('progBar');bar.innerHTML='';
+  for(var i=1;i<=TOTAL;i++){var d=document.createElement('div');d.className='progDot'+(i<curSec?' done':i===curSec?' cur':'');bar.appendChild(d);}
+  document.getElementById('progLbl').textContent='Stap '+curSec+' van '+TOTAL;
+}
+function goSec(n){document.getElementById('sec'+curSec).classList.remove('on');curSec=n;document.getElementById('sec'+n).classList.add('on');if(n===9)buildSum();updateProg();window.scrollTo(0,0);}
+function pickR(g,el){document.getElementById('grp-'+g).querySelectorAll('.ch').forEach(function(c){c.classList.remove('on');});el.classList.add('on');}
+function pickM(el){el.classList.toggle('on');}
+function pickSev(s){['licht','matig','ernstig'].forEach(function(x){document.getElementById('sev-'+x).className='sevCard';});document.getElementById('sev-'+s).classList.add(s);sev=s;}
+
+function updateRegnr(){
+  var afk=SCHOOL_VEST||SCHOOL_AFW;
+  var jaar=new Date().getFullYear();
+  var key=jaar+'-'+afk;
+  var nr=(seqNrs[key]||0)+1;
+  document.getElementById('regnr').value=key+'-'+String(nr).padStart(3,'0');
+}
+
+function addMRow(type){
+  var cont=document.getElementById(type==='cor'?'corRows':'prevRows');
+  var id=type==='cor'?++corC:++prevC;
+  var row=document.createElement('div');
+  row.className='mrow '+(type==='cor'?'g3':'g4');
+  row.id=type+'R'+id;
+  function mkDel(rid){
+    var b=document.createElement('button');
+    b.className='delBtn';b.textContent='✕';
+    b.onclick=function(){var e=document.getElementById(rid);if(e)e.remove();};
+    return b;
+  }
+  if(type==='cor'){
+    var f1=document.createElement('input');f1.type='text';f1.placeholder='Beschrijf maatregel...';f1.id='cm'+id;
+    var f2=document.createElement('input');f2.type='text';f2.placeholder='Verantwoordelijke';f2.id='cv'+id;
+    var f3=document.createElement('input');f3.type='date';f3.id='cd'+id;f3.style.flex='1';
+    var w=document.createElement('div');w.style.cssText='display:flex;gap:4px';
+    w.appendChild(f3);w.appendChild(mkDel(row.id));
+    row.appendChild(f1);row.appendChild(f2);row.appendChild(w);
+  }else{
+    var f1=document.createElement('input');f1.type='text';f1.placeholder='Beschrijf maatregel...';f1.id='pm'+id;
+    var f2=document.createElement('select');f2.id='pt'+id;
+    ['','Organisatie','Infrastructuur','Opleiding','Beleid'].forEach(function(o){
+      var op=document.createElement('option');op.value=o;op.textContent=o||'Type...';f2.appendChild(op);
+    });
+    var f3=document.createElement('input');f3.type='text';f3.placeholder='Verantwoordelijke';f3.id='pv'+id;
+    var f4=document.createElement('input');f4.type='date';f4.id='pd'+id;f4.style.flex='1';
+    var w=document.createElement('div');w.style.cssText='display:flex;gap:4px';
+    w.appendChild(f4);w.appendChild(mkDel(row.id));
+    row.appendChild(f1);row.appendChild(f2);row.appendChild(f3);row.appendChild(w);
+  }
+  cont.appendChild(row);
+}
+
+function fv(id){var el=document.getElementById(id);return el?el.value:'';}
+function getR(g){var el=document.getElementById('grp-'+g);if(!el)return'';var s=el.querySelector('.ch.on');return s?s.textContent.trim():'';}
+function getM(g){var el=document.getElementById('grp-'+g);if(!el)return'';return Array.from(el.querySelectorAll('.ch.on')).map(function(c){return c.textContent.trim();}).join(', ');}
+function getCorrig(){var r=[];document.querySelectorAll('[id^="corR"]').forEach(function(x){var i=x.id.replace('corR','');var m=fv('cm'+i);if(m)r.push({maatregel:m,verantw:fv('cv'+i),datum:fv('cd'+i)});});return r;}
+function getPrev(){var r=[];document.querySelectorAll('[id^="prevR"]').forEach(function(x){var i=x.id.replace('prevR','');var m=fv('pm'+i);if(m)r.push({maatregel:m,type:fv('pt'+i),verantw:fv('pv'+i),datum:fv('pd'+i)});});return r;}
+function sr(k,v){return '<div class="sr"><span class="sk">'+k+'</span><span class="sv">'+(v||'—')+'</span></div>';}
+
+function buildSum(){
+  var ban=document.getElementById('sevBanner');
+  if(sev==='ernstig'){ban.className='notice n-err';ban.innerHTML='<strong>Ernst: Ernstig</strong> — Directie wordt verwittigd.';}
+  else if(sev==='matig'){ban.className='notice n-warn';ban.innerHTML='<strong>Ernst: Matig</strong> — Directie wordt verwittigd.';}
+  else if(sev==='licht'){ban.className='notice n-ok';ban.innerHTML='<strong>Ernst: Licht</strong> — Geen automatische melding.';}
+  else{ban.className='';ban.innerHTML='';}
+  document.getElementById('emailBlock').style.display=(sev==='ernstig'||sev==='matig')?'block':'none';
+  if(GRAPH_CFG['mailDir_'+SCHOOL_ID]) document.getElementById('emailDir').value=GRAPH_CFG['mailDir_'+SCHOOL_ID];
+  document.getElementById('sumContent').innerHTML=
+    '<div class="sumCard"><h4>Algemeen</h4>'+sr('School',SCHOOL_NAAM+(SCHOOL_VEST?' — '+SCHOOL_VEST:''))+sr('Nummer',fv('regnr'))+sr('Registrerende',fv('naamReg'))+sr('Functie',getR('functie'))+'</div>'+
+    '<div class="sumCard"><h4>Betrokkene &amp; incident</h4>'+sr('Naam',fv('naamBet'))+sr('Rol',getR('rol'))+sr('Datum/Tijdstip',fv('datumOng')+' '+fv('tijdstip'))+sr('Plaats',getR('plaats'))+sr('Letsel',getM('letsel'))+sr('Ernst',sev?'<span class="badge b-'+sev+'">'+sev+'</span>':'—')+sr('Doorverwijzing',getR('doorv'))+'</div>';
+}
+
+function buildRecord(){
+  return{
+    Title:        fv('regnr'),
+    School:       SCHOOL_NAAM,
+    Vestiging:    SCHOOL_VEST||SCHOOL_AFW,
+    DatumRegistratie: fv('datumReg'),
+    NaamRegistrerende:fv('naamReg'),
+    Functie:      getR('functie'),
+    NaamBetrokkene:fv('naamBet'),
+    Rol:          getR('rol'),
+    KlasFunctie:  fv('klas'),
+    Geboortedatum:fv('gebdat'),
+    Contactgegevens:fv('contact'),
+    DatumOngeval: fv('datumOng'),
+    Tijdstip:     fv('tijdstip'),
+    Plaats:       getR('plaats'),
+    Activiteit:   fv('activiteit'),
+    Beschrijving: fv('beschrijving'),
+    Letsel:       getM('letsel'),
+    Ernst:        sev,
+    EHBO:         fv('ehbo'),
+    Doorverwijzing:getR('doorv'),
+    Getuigen:     fv('getuigen'),
+    GetuigenFunctie:fv('getuigenFunctie'),
+    Oorzaak:      getM('oorzaak'),
+    OorzaakToelichting:fv('oorzToel'),
+    CorrigMaatregelen:JSON.stringify(getCorrig()),
+    PrevMaatregelen:JSON.stringify(getPrev()),
+    Besproken:    getM('besproken'),
+    DatumBespreking:fv('datumBesp'),
+    Besluit:      fv('besluit'),
+    Status:       getR('status')||'Open',
+    DatumAfsluiting:fv('datumAfsl'),
+    HandtekeningReg:fv('handReg'),
+    HandtekeningDir:fv('handDir'),
+    OpgeslagenOp: new Date().toISOString(),
+  };
+}
+
+async function submitForm(){
+  var rec=buildRecord();
+  if(!rec.Title){alert('Kies eerst een vestiging.');return;}
+  var btn=document.getElementById('submitBtn');
+  var st=document.getElementById('submitStatus');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Opslaan...';
+
+  try{
+    // Schrijf naar SharePoint via Graph
+    var lijstId=GRAPH_CFG['listId_'+SCHOOL_ID]||SCHOOL_LIJST;
+    if(!lijstId) throw new Error('List ID niet geconfigureerd voor '+SCHOOL_NAAM+'. Open Instellingen.');
+    await graphPost(lijstId, rec);
+
+    // Verhoog volgnummer
+    var jaar=new Date().getFullYear();
+    var key=jaar+'-'+(SCHOOL_VEST||SCHOOL_AFW);
+    seqNrs[key]=(seqNrs[key]||0)+1;
+    try{localStorage.setItem('seq_l',JSON.stringify(seqNrs));}catch(e){}
+
+    // E-mail bij ernstig/matig
+    var emailDir=fv('emailDir')||GRAPH_CFG['mailDir_'+SCHOOL_ID]||'';
+    if((sev==='ernstig'||sev==='matig')&&emailDir){
+      await graphStuurMail(emailDir,
+        '[Incident '+sev+'] '+rec.Title+' — '+rec.NaamBetrokkene,
+        '<table style="font-family:Arial;font-size:14px;width:100%;max-width:600px;border-collapse:collapse">'+
+        '<tr style="background:#0C447C"><td colspan="2" style="padding:16px;color:#fff;font-size:16px;font-weight:bold">Centrumschool — Incident '+rec.Title+'</td></tr>'+
+        '<tr style="background:#FCEBEB"><td colspan="2" style="padding:10px;color:#791F1F;font-weight:bold">Ernst: '+sev+'</td></tr>'+
+        '<tr><td style="padding:8px 16px;color:#666;width:38%">Betrokkene</td><td>'+rec.NaamBetrokkene+' ('+rec.Rol+')</td></tr>'+
+        '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Datum/Tijdstip</td><td style="background:#f5f5f5">'+rec.DatumOngeval+' om '+rec.Tijdstip+'</td></tr>'+
+        '<tr><td style="padding:8px 16px;color:#666">Plaats</td><td>'+rec.Plaats+'</td></tr>'+
+        '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Letsel</td><td style="background:#f5f5f5">'+rec.Letsel+'</td></tr>'+
+        '<tr><td style="padding:8px 16px;color:#666">Beschrijving</td><td>'+rec.Beschrijving+'</td></tr>'+
+        '</table>'
+      ).catch(function(){});
+    }
+
+    document.getElementById('confirmMsg').textContent='Registratie '+rec.Title+' opgeslagen in SharePoint.';
+    goSec(10);
+  }catch(e){
+    st.innerHTML='<div class="notice n-err" style="margin-top:.75rem">✕ '+e.message+'</div>';
+    btn.disabled=false;btn.innerHTML='✓ Indienen &amp; opslaan';
+  }
+}
+
+function resetForm(){
+  sev='';corC=0;prevC=0;curSec=1;
+  document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('on');});
+  document.getElementById('sec1').classList.add('on');
+  document.querySelectorAll('.ch').forEach(function(c){c.classList.remove('on');});
+  ['licht','matig','ernstig'].forEach(function(x){var el=document.getElementById('sev-'+x);if(el)el.className='sevCard';});
+  document.querySelectorAll('input[type=text],input[type=date],input[type=time],input[type=email],textarea').forEach(function(i){if(!i.readOnly)i.value='';});
+  document.getElementById('corRows').innerHTML='';
+  document.getElementById('prevRows').innerHTML='';
+  document.getElementById('submitStatus').innerHTML='';
+  var btn=document.getElementById('submitBtn');btn.disabled=false;btn.innerHTML='✓ Indienen &amp; opslaan';
+  document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
+  updateRegnr();updateProg();addMRow('cor');addMRow('prev');
+}
+
+async function graphStuurMail(aan,onderwerp,body){
+  return graphMail(aan,onderwerp,body);
+}
+
+laadCfg();
+document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
+updateProg();addMRow('cor');addMRow('prev');
+</script>
+</body>
+</html>
