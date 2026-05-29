@@ -469,8 +469,13 @@ async function getToken() {
     });
     return resp.accessToken;
   } catch(e) {
-    // Silent mislukt → interactief
-    await msalApp.acquireTokenRedirect({ scopes: CFG.scopes, account: huidigAccount });
+    // Silent mislukt: gebruik popup zodat formulier behouden blijft
+    try {
+      var resp2 = await msalApp.acquireTokenPopup({ scopes: CFG.scopes, account: huidigAccount });
+      return resp2.accessToken;
+    } catch(e2) {
+      throw new Error('Aanmelden mislukt: ' + e2.message);
+    }
   }
 }
 
@@ -556,7 +561,7 @@ function kiesVest(vest) {
   startApp();
 }
 
-function startApp() {
+async function startApp() {
   document.getElementById('vestKiezer').classList.add('hide');
   document.getElementById('skolKiezer').classList.add('hide');
   document.getElementById('hoofdApp').style.display = 'block';
@@ -567,7 +572,7 @@ function startApp() {
   // Zet datum en genereer registratienummer
   var dr = document.getElementById('datumReg');
   if(dr) dr.value = new Date().toISOString().split('T')[0];
-  updateRegnr();
+  await updateRegnr();
   updateProg();
   addMRow('cor');
   addMRow('prev');
@@ -605,13 +610,36 @@ function pickSev(s){
   sev=s;
 }
 
-function updateRegnr(){
+async function updateRegnr(){
   var afk=SCHOOL_VEST||SCHOOL_AFW;
   if(!afk) afk='XX';
   var jaar=new Date().getFullYear();
   var key=jaar+'-'+afk;
+  var prefix=key+'-';
+
+  // Probeer hoogste nummer uit SharePoint te halen
+  try {
+    var token = await getToken();
+    var lijstId = CFG.lists[SCHOOL_ID];
+    if(token && lijstId) {
+      var url='https://graph.microsoft.com/v1.0/sites/'+CFG.siteId+'/lists/'+lijstId
+        +'/items?=fields&=fields(=Title)'
+        +'&=startswith(fields/Title,''+prefix+'')'
+        +'&=fields/Title desc&=1';
+      var r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+      if(r.ok){
+        var d=await r.json();
+        if(d.value && d.value.length>0){
+          var lastTitle=d.value[0].fields.Title||'';
+          var lastNr=parseInt(lastTitle.replace(prefix,''),10)||0;
+          if(lastNr>=(seqNrs[key]||0)) seqNrs[key]=lastNr;
+        }
+      }
+    }
+  } catch(e){ /* gebruik lokale teller als fallback */ }
+
   var nr=(seqNrs[key]||0)+1;
-  var regnr=key+'-'+String(nr).padStart(3,'0');
+  var regnr=prefix+String(nr).padStart(3,'0');
   var el=document.getElementById('regnr');
   if(el) el.value=regnr;
   return regnr;
@@ -822,7 +850,7 @@ async function submitForm(){
 }
 
 // ── RESET FORMULIER ───────────────────────────────────────────────────
-function resetForm() {
+async function resetForm() {
   // Reset alle invoervelden
   document.querySelectorAll('input[type="text"], input[type="date"], input[type="time"], textarea').forEach(function(el) {
     el.value = '';
@@ -844,7 +872,7 @@ function resetForm() {
   if (prevRows) prevRows.innerHTML = '';
   corC = 0; prevC = 0;
   // Nieuw registratienummer
-  updateRegnr();
+  await updateRegnr();
   // Terug naar schoolkiezer
   toonSchoolKiezer();
 }
