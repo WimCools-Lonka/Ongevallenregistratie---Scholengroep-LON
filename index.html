@@ -382,9 +382,9 @@ var CFG = {
   redirectUri: 'https://wimcools-lonka.github.io/Ongevallenregistratie---Scholengroep-LON/',
   siteId:    '89dc1d04-ed8d-4038-82c7-0428db0483e7',
   lists: {
-    cs: '1d7969fa-d2ff-4289-a7b5-15f82d79606f',
-    ks: '1f5df4dd-36e9-4032-a12f-be3c2eb85f62',
-    te: 'ea66cd45-2712-4449-8cc4-7b2a3b25af02'
+    cs: 'e0d4744b-a560-48b8-a958-6616d6f4cd3e',
+    ks: '1f069649-fb67-41ae-a963-03637ff33377',
+    te: '1b6e3d58-7a5a-4fa3-9ff6-606792703e59'
   },
   mailDir: {
     cs: 'directie@centrumschool.londerzeel.be',
@@ -777,11 +777,13 @@ function resetForm(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
-updateProg();
-addMRow('cor');
-addMRow('prev');
-msalInit();
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
+  updateProg();
+  addMRow('cor');
+  addMRow('prev');
+  msalInit();
+});
 </script>
 </body>
 </html>
