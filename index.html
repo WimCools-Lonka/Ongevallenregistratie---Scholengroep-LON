@@ -487,9 +487,7 @@ async function graphPost(lijstId, velden) {
   );
   if (!r.ok) {
     var e = await r.json().catch(function(){ return {}; });
-    // Toon de volledige foutdetails
-    var detail = JSON.stringify(e).substring(0, 300);
-    throw new Error(detail);
+    throw new Error((e.error && e.error.message) || JSON.stringify(e).substring(0,200));
   }
   return r.json();
 }
@@ -692,120 +690,96 @@ function datumNaarSP(d) {
 }
 
 async function submitForm(){
-  var rec={
-    Title:          fv('regnr'),
-    School:         SCHOOL_NAAM,
-    Vestiging:      SCHOOL_VEST||SCHOOL_AFW,
-    DatumRegistratie: fv('datumReg'),
-    NaamRegistrerende: fv('naamReg'),
-    Functie:        getR('functie'),
-    NaamBetrokkene: fv('naamBet'),
-    Rol:            getR('rol'),
-    KlasFunctie:    fv('klas'),
-    Geboortedatum:  fv('gebdat'),
-    Contactgegevens:fv('contact'),
-    DatumOngeval:   fv('datumOng'),
-    Tijdstip:       fv('tijdstip'),
-    Plaats:         getR('plaats'),
-    Activiteit:     fv('activiteit'),
-    Beschrijving:   fv('beschrijving'),
-    Letsel:         getM('letsel'),
-    Ernst:          sev,
-    EHBO:           fv('ehbo'),
-    Doorverwijzing: getR('doorv'),
-    Getuigen:       fv('getuigen'),
-    GetuigenFunctie:fv('getuigenFunctie'),
-    Oorzaak:        getM('oorzaak'),
-    OorzaakToelichting: fv('oorzToel'),
-    CorrigMaatregelen: JSON.stringify(getCorrig()),
-    PrevMaatregelen:   JSON.stringify(getPrev()),
-    Besproken:      getM('besproken'),
-    DatumBespreking:fv('datumBesp'),
-    Besluit:        fv('besluit'),
-    Status:         getR('status')||'Open',
-    DatumAfsluiting:fv('datumAfsl'),
-    HandtekeningReg:fv('handReg'),
-    HandtekeningDir:fv('handDir'),
-    OpgeslagenOp:   new Date().toLocaleString('nl-BE'),
-    IngediendDoor:  huidigAccount ? huidigAccount.username : ''
-  };
-
+  var rec = buildRecord();
   if(!rec.Title || rec.Title.trim() === ''){
-    // Genereer alsnog een registratienummer
-    rec.Title = updateRegnr() || (new Date().getFullYear()+'-'+SCHOOL_AFW+'-000');
+    rec.Title = new Date().getFullYear()+'-'+(SCHOOL_VEST||SCHOOL_AFW)+'-001';
     var el = document.getElementById('regnr');
     if(el) el.value = rec.Title;
   }
-  var btn=document.getElementById('submitBtn');
-  var st=document.getElementById('submitStatus');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span> Opslaan...';
+
+  var btn = document.getElementById('submitBtn');
+  var st  = document.getElementById('submitStatus');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Opslaan...';
 
   try {
-    var lijstId = CFG.lists[SCHOOL_ID];
-    await graphPost(lijstId, rec);
+    var token   = await getToken();
+    var siteId  = CFG.siteId;
+    var lijstId = CFG.lists[SCHOOL_ID] ? CFG.lists[SCHOOL_ID] : null;
+    if (!lijstId) throw new Error('Geen lijst gevonden voor school: ' + SCHOOL_ID);
 
-    // Volgnummer verhogen
-    var jaar=new Date().getFullYear();
-    var key=jaar+'-'+(SCHOOL_VEST||SCHOOL_AFW);
-    seqNrs[key]=(seqNrs[key]||0)+1;
-    try{sessionStorage.setItem('seq_l',JSON.stringify(seqNrs));}catch(e){}
+    // Bouw velden — alleen tekst en nota velden, geen dateTime
+    var velden = { Title: rec.Title };
+    var tekstVelden = ['School','Vestiging','NaamRegistrerende','Functie',
+      'NaamBetrokkene','Rol','KlasFunctie','Contactgegevens','Tijdstip','Plaats',
+      'Activiteit','Ernst','EHBO','Doorverwijzing','Getuigen','GetuigenFunctie',
+      'Status','HandtekeningReg','HandtekeningDir','OpgeslagenOp','IngediendDoor'];
+    var notaVelden = ['Beschrijving','Letsel','Oorzaak','OorzaakToelichting',
+      'CorrigMaatregelen','PrevMaatregelen','Besproken','Besluit'];
+    var datumVelden = ['DatumRegistratie','Geboortedatum','DatumOngeval',
+      'DatumBespreking','DatumAfsluiting'];
 
-    // E-mail bij ernstig/matig — verstuurd vanuit account van de ingelogde gebruiker
-    var emailDir = CFG.mailDir[SCHOOL_ID] || '';
-    if((sev==='ernstig'||sev==='matig') && emailDir){
-      await graphMail(emailDir,
-        '[Incident '+sev+'] '+rec.Title+' — '+rec.NaamBetrokkene,
-        '<table style="font-family:Arial;font-size:14px;width:100%;max-width:600px;border-collapse:collapse">'+
-        '<tr style="background:#0C447C"><td colspan="2" style="padding:16px;color:#fff;font-size:16px;font-weight:bold">'+
-        'Centrumschool Londerzeel — Incident '+rec.Title+'</td></tr>'+
-        '<tr style="background:#FCEBEB"><td colspan="2" style="padding:10px;color:#791F1F;font-weight:bold">Ernst: '+sev+'</td></tr>'+
-        '<tr><td style="padding:8px 16px;color:#666;width:38%">Betrokkene</td><td>'+rec.NaamBetrokkene+' ('+rec.Rol+')</td></tr>'+
-        '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Datum/Tijdstip</td><td style="background:#f5f5f5">'+rec.DatumOngeval+' om '+rec.Tijdstip+'</td></tr>'+
-        '<tr><td style="padding:8px 16px;color:#666">Plaats</td><td>'+rec.Plaats+'</td></tr>'+
-        '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Letsel</td><td style="background:#f5f5f5">'+rec.Letsel+'</td></tr>'+
-        '<tr><td style="padding:8px 16px;color:#666">Beschrijving</td><td>'+rec.Beschrijving+'</td></tr>'+
-        '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Ingediend door</td><td style="background:#f5f5f5">'+rec.NaamRegistrerende+'</td></tr>'+
-        '</table>'
-      ).catch(function(){});
+    tekstVelden.forEach(function(k){
+      if(rec[k] && rec[k] !== '') velden[k] = String(rec[k]).substring(0,255);
+    });
+    notaVelden.forEach(function(k){
+      if(rec[k] && rec[k] !== '') velden[k] = String(rec[k]);
+    });
+    datumVelden.forEach(function(k){
+      var v = rec[k];
+      if(v && v !== null && String(v).length >= 10) {
+        velden[k] = String(v).substring(0,10) + 'T12:00:00Z';
+      }
+    });
+
+    var url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + lijstId + '/items';
+    var r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: velden })
+    });
+
+    if(!r.ok){
+      var e = await r.json().catch(function(){return {};});
+      throw new Error((e.error && e.error.message) || ('HTTP ' + r.status));
     }
 
-    document.getElementById('confirmMsg').textContent='Registratie '+rec.Title+' opgeslagen in SharePoint.';
+    // Volgnummer verhogen
+    var jaar = new Date().getFullYear();
+    var key  = jaar + '-' + (SCHOOL_VEST||SCHOOL_AFW);
+    seqNrs[key] = (seqNrs[key]||0) + 1;
+    try{ sessionStorage.setItem('seq_l', JSON.stringify(seqNrs)); }catch(e){}
+
+    // E-mail bij ernstig/matig
+    var emailDir = CFG.mailDir[SCHOOL_ID] || '';
+    if((sev==='ernstig'||sev==='matig') && emailDir){
+      try {
+        await graphMail(emailDir,
+          '[Incident '+sev+'] '+rec.Title+' — '+rec.NaamBetrokkene,
+          '<table style="font-family:Arial;font-size:14px;width:100%;max-width:600px;border-collapse:collapse">'+
+          '<tr style="background:#0C447C"><td colspan="2" style="padding:16px;color:#fff;font-size:16px;font-weight:bold">'+
+          'Londerzeel — Incident '+rec.Title+'</td></tr>'+
+          '<tr style="background:#FCEBEB"><td colspan="2" style="padding:10px;color:#791F1F;font-weight:bold">Ernst: '+sev+'</td></tr>'+
+          '<tr><td style="padding:8px 16px;color:#666;width:38%">Betrokkene</td><td>'+rec.NaamBetrokkene+' ('+rec.Rol+')</td></tr>'+
+          '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Datum</td><td style="background:#f5f5f5">'+rec.DatumOngeval+'</td></tr>'+
+          '<tr><td style="padding:8px 16px;color:#666">Plaats</td><td>'+rec.Plaats+'</td></tr>'+
+          '<tr><td style="padding:8px;color:#666;background:#f5f5f5">Letsel</td><td style="background:#f5f5f5">'+rec.Letsel+'</td></tr>'+
+          '</table>'
+        );
+      } catch(mailErr) { console.warn('Mail fout:', mailErr.message); }
+    }
+
+    document.getElementById('confirmMsg').textContent = 'Registratie '+rec.Title+' opgeslagen in SharePoint.';
     goSec(10);
+
   } catch(e) {
-    st.innerHTML='<div class="notice n-err" style="margin-top:.75rem">✕ '+e.message+'</div>';
-    btn.disabled=false;
-    btn.innerHTML='✓ Indienen &amp; opslaan';
+    st.innerHTML = '<div class="notice n-err" style="margin-top:.75rem">✕ '+e.message+'</div>';
+    btn.disabled = false;
+    btn.innerHTML = '✓ Indienen &amp; opslaan';
   }
 }
 
-function resetForm(){
-  sev=''; corC=0; prevC=0; curSec=1;
-  document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('on');});
-  document.getElementById('sec1').classList.add('on');
-  document.querySelectorAll('.ch').forEach(function(c){c.classList.remove('on');});
-  ['licht','matig','ernstig'].forEach(function(x){var el=document.getElementById('sev-'+x);if(el)el.className='sevCard';});
-  document.querySelectorAll('input[type=text],input[type=date],input[type=time],input[type=email],textarea')
-    .forEach(function(i){if(!i.readOnly)i.value='';});
-  document.getElementById('corRows').innerHTML='';
-  document.getElementById('prevRows').innerHTML='';
-  document.getElementById('submitStatus').innerHTML='';
-  var btn=document.getElementById('submitBtn');
-  btn.disabled=false; btn.innerHTML='✓ Indienen &amp; opslaan';
-  document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
-  // Prefill naam opnieuw
-  if(huidigAccount) document.getElementById('naamReg').value=huidigAccount.name||'';
-  updateRegnr(); updateProg(); addMRow('cor'); addMRow('prev');
-}
 
-// ── INIT ──────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('datumReg').value=new Date().toISOString().split('T')[0];
-  updateProg();
-  addMRow('cor');
-  addMRow('prev');
-  msalInit();
-});
 </script>
 </body>
 </html>
