@@ -564,9 +564,15 @@ function startApp() {
   document.getElementById('hoofdApp').style.display = 'block';
   var badge = SCHOOL_NAAM + (SCHOOL_VEST ? ' · ' + SCHOOL_VEST : '');
   document.getElementById('topSchool').textContent = badge;
-  document.getElementById('vestiging').value = SCHOOL_VEST || SCHOOL_AFW;
+  var vest = document.getElementById('vestiging');
+  if(vest) vest.value = SCHOOL_VEST || SCHOOL_AFW;
+  // Zet datum en genereer registratienummer
+  var dr = document.getElementById('datumReg');
+  if(dr) dr.value = new Date().toISOString().split('T')[0];
   updateRegnr();
   updateProg();
+  addMRow('cor');
+  addMRow('prev');
   goSec(1);
 }
 
@@ -603,11 +609,14 @@ function pickSev(s){
 
 function updateRegnr(){
   var afk=SCHOOL_VEST||SCHOOL_AFW;
-  if(!afk) return;
+  if(!afk) afk='XX';
   var jaar=new Date().getFullYear();
   var key=jaar+'-'+afk;
   var nr=(seqNrs[key]||0)+1;
-  document.getElementById('regnr').value=key+'-'+String(nr).padStart(3,'0');
+  var regnr=key+'-'+String(nr).padStart(3,'0');
+  var el=document.getElementById('regnr');
+  if(el) el.value=regnr;
+  return regnr;
 }
 
 function addMRow(type){
@@ -721,7 +730,12 @@ async function submitForm(){
     IngediendDoor:  huidigAccount ? huidigAccount.username : ''
   };
 
-  if(!rec.Title){alert('Kies eerst een vestiging.');return;}
+  if(!rec.Title || rec.Title.trim() === ''){
+    // Genereer alsnog een registratienummer
+    rec.Title = updateRegnr() || (new Date().getFullYear()+'-'+SCHOOL_AFW+'-000');
+    var el = document.getElementById('regnr');
+    if(el) el.value = rec.Title;
+  }
   var btn=document.getElementById('submitBtn');
   var st=document.getElementById('submitStatus');
   btn.disabled=true;
