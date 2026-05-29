@@ -622,10 +622,11 @@ async function updateRegnr(){
     var token = await getToken();
     var lijstId = CFG.lists[SCHOOL_ID];
     if(token && lijstId) {
+      var filter=encodeURIComponent("startswith(fields/Title,'"+prefix+"')");
       var url='https://graph.microsoft.com/v1.0/sites/'+CFG.siteId+'/lists/'+lijstId
-        +'/items?=fields&=fields(=Title)'
-        +'&=startswith(fields/Title,''+prefix+'')'
-        +'&=fields/Title desc&=1';
+        +'/items?$select=fields&$expand=fields($select=Title)'
+        +'&$filter='+filter
+        +'&$orderby=fields/Title%20desc&$top=1';
       var r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
       if(r.ok){
         var d=await r.json();
