@@ -821,6 +821,34 @@ async function submitForm(){
   }
 }
 
+// ── RESET FORMULIER ───────────────────────────────────────────────────
+function resetForm() {
+  // Reset alle invoervelden
+  document.querySelectorAll('input[type="text"], input[type="date"], input[type="time"], textarea').forEach(function(el) {
+    el.value = '';
+  });
+  // Reset radio/checkbox knoppen
+  document.querySelectorAll('.ch.on').forEach(function(el) {
+    el.classList.remove('on');
+  });
+  // Reset ernst
+  ['licht','matig','ernstig'].forEach(function(x) {
+    var el = document.getElementById('sev-' + x);
+    if (el) el.className = 'sevCard';
+  });
+  sev = '';
+  // Reset corrigerende/preventieve maatregelen rijen
+  var corRows = document.getElementById('corRows');
+  var prevRows = document.getElementById('prevRows');
+  if (corRows) corRows.innerHTML = '';
+  if (prevRows) prevRows.innerHTML = '';
+  corC = 0; prevC = 0;
+  // Nieuw registratienummer
+  updateRegnr();
+  // Terug naar schoolkiezer
+  toonSchoolKiezer();
+}
+
 // ── OPSTARTEN ─────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
   msalInit().catch(function(e) {
