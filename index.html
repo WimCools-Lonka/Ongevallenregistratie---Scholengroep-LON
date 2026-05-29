@@ -689,6 +689,48 @@ function datumNaarSP(d) {
   return d.trim() + 'T12:00:00Z';
 }
 
+function buildRecord() {
+  var corr = getCorrig().map(function(r){ return r.maatregel+(r.verantw?' ('+r.verantw+')':'')+(r.datum?' – '+r.datum:''); }).join('\n');
+  var prev = getPrev().map(function(r){ return r.maatregel+(r.type?' ['+r.type+']':'')+(r.verantw?' ('+r.verantw+')':'')+(r.datum?' – '+r.datum:''); }).join('\n');
+  return {
+    Title:              fv('regnr'),
+    School:             SCHOOL_NAAM,
+    Vestiging:          SCHOOL_VEST || SCHOOL_AFW,
+    NaamRegistrerende:  fv('naamReg'),
+    Functie:            getR('functie'),
+    NaamBetrokkene:     fv('naamBet'),
+    Rol:                getR('rol'),
+    KlasFunctie:        fv('klaFunc'),
+    Contactgegevens:    fv('contact'),
+    Geboortedatum:      fv('gebdat'),
+    DatumRegistratie:   fv('datumReg'),
+    DatumOngeval:       fv('datumOng'),
+    Tijdstip:           fv('tijdstip'),
+    Plaats:             getR('plaats'),
+    Activiteit:         getR('activiteit'),
+    Beschrijving:       fv('beschrijving'),
+    Letsel:             getM('letsel'),
+    Ernst:              sev,
+    EHBO:               getR('ehbo'),
+    Doorverwijzing:     getR('doorv'),
+    Getuigen:           fv('getuigen'),
+    GetuigenFunctie:    fv('getuigenFunc'),
+    Oorzaak:            getM('oorzaak'),
+    OorzaakToelichting: fv('oorzaakToel'),
+    CorrigMaatregelen:  corr,
+    PrevMaatregelen:    prev,
+    Besproken:          fv('besproken'),
+    DatumBespreking:    fv('datumBesp'),
+    Besluit:            fv('besluit'),
+    DatumAfsluiting:    fv('datumAfs'),
+    HandtekeningReg:    fv('handReg'),
+    HandtekeningDir:    fv('handDir'),
+    Status:             'Ingediend',
+    IngediendDoor:      huidigAccount ? (huidigAccount.name || huidigAccount.username) : '',
+    OpgeslagenOp:       new Date().toISOString().split('T')[0]
+  };
+}
+
 async function submitForm(){
   var rec = buildRecord();
   if(!rec.Title || rec.Title.trim() === ''){
