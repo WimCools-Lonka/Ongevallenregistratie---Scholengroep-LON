@@ -674,11 +674,10 @@ function buildSum(){
     '</div>';
 }
 
-function datumNaarISO(d) {
-  // Converteer 'YYYY-MM-DD' naar ISO voor SharePoint dateTime kolommen
-  // Lege waarden worden null (SharePoint accepteert geen lege string voor dateTime)
-  if (!d) return null;
-  return d + 'T00:00:00Z';
+function datumNaarSP(d) {
+  // SharePoint dateTime veld: stuur als 'YYYY-MM-DDTHH:MM:SSZ' of null
+  if (!d || d.trim() === '') return null;
+  return d.trim() + 'T12:00:00Z';
 }
 
 async function submitForm(){
@@ -686,15 +685,15 @@ async function submitForm(){
     Title:          fv('regnr'),
     School:         SCHOOL_NAAM,
     Vestiging:      SCHOOL_VEST||SCHOOL_AFW,
-    DatumRegistratie: datumNaarISO(fv('datumReg')),
+    DatumRegistratie: fv('datumReg'),
     NaamRegistrerende: fv('naamReg'),
     Functie:        getR('functie'),
     NaamBetrokkene: fv('naamBet'),
     Rol:            getR('rol'),
     KlasFunctie:    fv('klas'),
-    Geboortedatum:  datumNaarISO(fv('gebdat')),
+    Geboortedatum:  fv('gebdat'),
     Contactgegevens:fv('contact'),
-    DatumOngeval:   datumNaarISO(fv('datumOng')),
+    DatumOngeval:   fv('datumOng'),
     Tijdstip:       fv('tijdstip'),
     Plaats:         getR('plaats'),
     Activiteit:     fv('activiteit'),
@@ -710,13 +709,13 @@ async function submitForm(){
     CorrigMaatregelen: JSON.stringify(getCorrig()),
     PrevMaatregelen:   JSON.stringify(getPrev()),
     Besproken:      getM('besproken'),
-    DatumBespreking:datumNaarISO(fv('datumBesp')),
+    DatumBespreking:fv('datumBesp'),
     Besluit:        fv('besluit'),
     Status:         getR('status')||'Open',
-    DatumAfsluiting:datumNaarISO(fv('datumAfsl')),
+    DatumAfsluiting:fv('datumAfsl'),
     HandtekeningReg:fv('handReg'),
     HandtekeningDir:fv('handDir'),
-    OpgeslagenOp:   new Date().toISOString(),
+    OpgeslagenOp:   new Date().toLocaleString('nl-BE'),
     IngediendDoor:  huidigAccount ? huidigAccount.username : ''
   };
 
@@ -728,12 +727,7 @@ async function submitForm(){
 
   try {
     var lijstId = CFG.lists[SCHOOL_ID];
-    // Verwijder null-waarden — SharePoint accepteert geen null voor tekstvelden
-    var velden = {};
-    Object.keys(rec).forEach(function(k) {
-      if (rec[k] !== null && rec[k] !== undefined) velden[k] = rec[k];
-    });
-    await graphPost(lijstId, velden);
+    await graphPost(lijstId, rec);
 
     // Volgnummer verhogen
     var jaar=new Date().getFullYear();
