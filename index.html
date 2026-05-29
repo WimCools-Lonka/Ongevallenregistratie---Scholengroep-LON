@@ -487,7 +487,9 @@ async function graphPost(lijstId, velden) {
   );
   if (!r.ok) {
     var e = await r.json().catch(function(){ return {}; });
-    throw new Error((e.error && e.error.message) || ('HTTP ' + r.status));
+    // Toon de volledige foutdetails
+    var detail = JSON.stringify(e).substring(0, 300);
+    throw new Error(detail);
   }
   return r.json();
 }
