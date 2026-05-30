@@ -225,26 +225,21 @@ async function msalInit() {
   try {
     var resp = await msalApp.handleRedirectPromise();
     if (resp) huidigAccount = resp.account;
-    var accounts = msalApp.getAllAccounts();
-    if (accounts.length > 0) {
-      huidigAccount = accounts[0];
-      toonNaLogin();
-    } else {
-      document.getElementById('loginScherm').classList.remove('hide');
-    }
   } catch(e) {
-    document.getElementById('loginStatus').innerHTML = '<div class="notice n-err">' + e.message + '</div>';
+    console.warn('handleRedirectPromise:', e.message);
+  }
+  var accounts = msalApp.getAllAccounts();
+  if (accounts.length > 0) {
+    huidigAccount = huidigAccount || accounts[0];
+    toonNaLogin();
+  } else {
+    document.getElementById('loginScherm').classList.remove('hide');
   }
 }
 
 function msalAanmelden() {
-  document.getElementById('loginStatus').innerHTML = '<div class="notice n-info"><span class="spinner"></span> Aanmelden...</div>';
-  msalApp.loginPopup({ scopes: CFG.scopes }).then(function(resp) {
-    huidigAccount = resp.account;
-    toonNaLogin();
-  }).catch(function(e) {
-    document.getElementById('loginStatus').innerHTML = '<div class="notice n-err">' + e.message + '</div>';
-  });
+  document.getElementById('loginStatus').innerHTML = '<div class="notice n-info"><span class="spinner"></span> Doorsturen...</div>';
+  msalApp.loginRedirect({ scopes: CFG.scopes });
 }
 
 function msalAfmelden() {
