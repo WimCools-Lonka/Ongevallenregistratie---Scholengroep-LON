@@ -238,8 +238,13 @@ async function msalInit() {
 }
 
 function msalAanmelden() {
-  document.getElementById('loginStatus').innerHTML = '<div class="notice n-info"><span class="spinner"></span> Doorsturen...</div>';
-  msalApp.loginRedirect({ scopes: CFG.scopes });
+  document.getElementById('loginStatus').innerHTML = '<div class="notice n-info"><span class="spinner"></span> Aanmelden...</div>';
+  msalApp.loginPopup({ scopes: CFG.scopes }).then(function(resp) {
+    huidigAccount = resp.account;
+    toonNaLogin();
+  }).catch(function(e) {
+    document.getElementById('loginStatus').innerHTML = '<div class="notice n-err">' + e.message + '</div>';
+  });
 }
 
 function msalAfmelden() {
@@ -260,7 +265,12 @@ async function getToken() {
     var resp = await msalApp.acquireTokenSilent({ scopes: CFG.scopes, account: huidigAccount });
     return resp.accessToken;
   } catch(e) {
-    await msalApp.acquireTokenRedirect({ scopes: CFG.scopes, account: huidigAccount });
+    try {
+      var resp2 = await msalApp.acquireTokenPopup({ scopes: CFG.scopes, account: huidigAccount });
+      return resp2.accessToken;
+    } catch(e2) {
+      throw new Error('Aanmelden mislukt: ' + e2.message);
+    }
   }
 }
 
