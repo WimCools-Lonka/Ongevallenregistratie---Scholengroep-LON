@@ -129,6 +129,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#1a1a1a;backgr
 <div class="tabs">
   <button class="tabBtn on" onclick="toonTab('overzicht')">Overzicht</button>
   <button class="tabBtn" onclick="toonTab('grafieken')">Grafieken</button>
+  <button class="tabBtn" onclick="toonTab('maatregelen')">Maatregelen</button>
 </div>
 
 <!-- OVERZICHT -->
@@ -148,7 +149,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#1a1a1a;backgr
       </select>
       <select id="fStatus" onchange="renderTbl()">
         <option value="">Alle statussen</option>
-        <option>Open</option><option>In uitvoering</option><option>Afgesloten</option>
+        <option>Ingediend</option><option>Besproken</option><option>Maatregelen lopend</option><option>Afgesloten</option>
       </select>
     </div>
     <div id="loadStatus"></div>
@@ -177,6 +178,29 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;color:#1a1a1a;backgr
       <div class="grafTitel">Oorzaken (top 5)</div>
       <div id="grafOorzaak"></div>
     </div>
+  </div>
+</div>
+
+<!-- MAATREGELEN -->
+<div class="tabView" id="tab-maatregelen">
+  <div class="card">
+    <div class="filterBar">
+      <select id="fMType" onchange="renderMaatregelen()">
+        <option value="">Alle types</option>
+        <option value="cor">Corrigerend</option>
+        <option value="prev">Preventief</option>
+      </select>
+      <select id="fMSchool" onchange="renderMaatregelen()">
+        <option value="">Alle scholen</option>
+        <option>Centrumschool</option><option>Kouterschool</option><option>School Ter Elst</option>
+      </select>
+      <select id="fMStatus" onchange="renderMaatregelen()">
+        <option value="">Alle statussen</option>
+        <option value="open">Niet uitgevoerd</option>
+        <option value="gedaan">Uitgevoerd</option>
+      </select>
+    </div>
+    <div id="maatrWrap"><p style="color:#aaa;font-size:13px;padding:1rem">Laad data via Verversen.</p></div>
   </div>
 </div>
 </div>
@@ -304,7 +328,10 @@ async function laadAlles() {
             beschrijving:f.Beschrijving || '',
             corrig:      parseJ(f.CorrigMaatregelen),
             prev:        parseJ(f.PrevMaatregelen),
-            status:      f.Status || 'Open',
+            status:      f.Status || 'Ingediend',
+            evalDatum:       f.EvalDatum || '',
+            evalConclusies:  f.EvalConclusies || '',
+            evalHandtekening:f.EvalHandtekening || '',
             naamReg:     f.NaamRegistrerende || '',
             savedAt:     f.OpgeslagenOp || item.createdDateTime || '',
             spId:        item.id
@@ -339,7 +366,9 @@ function toonTab(t) {
   document.querySelectorAll('.tabView').forEach(function(v) { v.classList.remove('on'); });
   document.querySelectorAll('.tabBtn').forEach(function(b) { b.classList.remove('on'); });
   document.getElementById('tab-' + t).classList.add('on');
-  document.querySelectorAll('.tabBtn')[t === 'overzicht' ? 0 : 1].classList.add('on');
+  var idx = t === 'overzicht' ? 0 : t === 'grafieken' ? 1 : 2;
+  document.querySelectorAll('.tabBtn')[idx].classList.add('on');
+  if (t === 'maatregelen') renderMaatregelen();
 }
 
 // ── METRICS ───────────────────────────────────────────────────────────
@@ -348,7 +377,7 @@ function renderMetrics() {
   document.getElementById('m-tot').textContent  = allRecords.length;
   document.getElementById('m-ern').textContent  = allRecords.filter(function(r) { return r.ernst === 'ernstig'; }).length;
   document.getElementById('m-mat').textContent  = allRecords.filter(function(r) { return r.ernst === 'matig'; }).length;
-  document.getElementById('m-open').textContent = allRecords.filter(function(r) { return r.status === 'Open'; }).length;
+  document.getElementById('m-open').textContent = allRecords.filter(function(r) { return r.status === 'Ingediend' || r.status === 'Open'; }).length;
   document.getElementById('m-jaar').textContent = allRecords.filter(function(r) { return r.datumOng.startsWith(String(jaar)); }).length;
 }
 
@@ -378,7 +407,7 @@ function renderTbl() {
   var html = '<table class="rtbl"><thead><tr><th>Nummer</th><th>School</th><th>Datum</th><th>Betrokkene</th><th>Plaats</th><th>Ernst</th><th>Status</th></tr></thead><tbody>';
   filtered.forEach(function(r) {
     var idx = allRecords.indexOf(r);
-    var sb  = r.status === 'Open' ? 'open' : r.status === 'In uitvoering' ? 'uitv' : 'afgsl';
+    var sb  = r.status === 'Ingediend' ? 'open' : r.status === 'Besproken' ? 'besp' : r.status === 'Maatregelen lopend' ? 'uitv' : 'afgsl';
     html += '<tr onclick="openDrawer(' + idx + ')">' +
       '<td style="font-family:monospace;font-size:12px">' + (r.regnr || '—') + '</td>' +
       '<td><span class="schoolTag">' + (r.school || '—') + '</span></td>' +
@@ -423,8 +452,19 @@ function openDrawer(idx) {
     '<div class="sumCard"><h4>Oorzaak</h4>' + sr('Oorzaak', r.oorzaak) + '</div>' +
     '<div class="sumCard"><h4>Corrigerende maatregelen</h4>' + corH + '</div>' +
     '<div class="sumCard"><h4>Preventieve maatregelen</h4>' + preH + '</div>' +
-    '<div class="sumCard"><h4>Status</h4>' + sr('Status', '<span class="badge b-' + (r.status === 'Open' ? 'open' : r.status === 'In uitvoering' ? 'uitv' : 'afgsl') + '">' + (r.status || '—') + '</span>') + '</div>' +
+    '<div class="sumCard"><h4>Status</h4>' + sr('Status', '<span class="badge b-' + (r.status === 'Ingediend' ? 'open' : r.status === 'Besproken' ? 'besp' : r.status === 'Maatregelen lopend' ? 'uitv' : 'afgsl') + '">' + (r.status || '—') + '</span>') + '</div>' +
+    '<div class="sumCard"><h4>Evaluatie &amp; bespreking</h4>' +
+    '<div style="display:grid;gap:8px;margin-bottom:8px">' +
+    '<label style="font-size:12px;color:#666">Datum bespreking</label>' +
+    '<input type="date" id="ev-datum" value="' + (r.evalDatum||'') + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px">' +
+    '<label style="font-size:12px;color:#666">Conclusies / opmerkingen</label>' +
+    '<textarea id="ev-conclusies" rows="3" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical">' + (r.evalConclusies||'') + '</textarea>' +
+    '<label style="font-size:12px;color:#666">Handtekening voorzitter bespreking</label>' +
+    '<input type="text" id="ev-hand" value="' + (r.evalHandtekening||'') + '" placeholder="Naam als digitale bevestiging" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px">' +
+    '</div></div>' +
+    '<div class="sumCard"><h4>Opvolging maatregelen</h4>' + buildMaatOpvolging(r, idx) + '</div>' +
     '<div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btnP" onclick="slaEvaluatieOp(' + idx + ')">💾 Evaluatie opslaan</button>' +
     '<button class="btnP" onclick="changeStatus(' + idx + ')">Status wijzigen</button>' +
     '<button class="btnS" onclick="printDetail(' + idx + ')">🖨 Afdrukken / PDF</button>' +
     '</div>';
@@ -439,7 +479,7 @@ function closeDrawer() {
 }
 
 async function changeStatus(idx) {
-  var opts = ['Open', 'In uitvoering', 'Afgesloten'];
+  var opts = ['Ingediend', 'Besproken', 'Maatregelen lopend', 'Afgesloten'];
   var cur  = allRecords[idx].status || 'Open';
   var nieuw = opts[(opts.indexOf(cur) + 1) % opts.length];
   allRecords[idx].status = nieuw;
@@ -566,6 +606,115 @@ function renderGrafieken() {
           '<div class="barNum">' + oorzTel[o] + '</div></div>';
       }).join('')
     : '<p style="color:#aaa;font-size:13px">Geen data</p>';
+}
+
+
+// ── MAATREGEL OPVOLGING ───────────────────────────────────────────────
+function buildMaatOpvolging(r, idx) {
+  var html = '';
+  var allMaatregelen = [];
+  (r.corrig||[]).forEach(function(m,i){ allMaatregelen.push({type:'cor', i:i, m:m}); });
+  (r.prev||[]).forEach(function(m,i){ allMaatregelen.push({type:'prev', i:i, m:m}); });
+  if (!allMaatregelen.length) return '<p style="font-size:13px;color:#aaa">Geen maatregelen ingevoerd.</p>';
+  allMaatregelen.forEach(function(item) {
+    var key = 'mv-'+item.type+'-'+item.i;
+    var gedaan = item.m.gedaan || false;
+    var datum  = item.m.datumUitv || '';
+    html += '<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0">';
+    html += '<div><span style="font-size:10px;color:#888;text-transform:uppercase">' + (item.type==='cor'?'Corrigerend':'Preventief') + '</span><br><span style="font-size:13px">' + (item.m.maatregel||'—') + '</span></div>';
+    html += '<input type="date" id="' + key + '-datum" value="' + datum + '" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px">';
+    html += '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="' + key + '-ok" ' + (gedaan?'checked':'') + '> Gedaan</label>';
+    html += '</div>';
+  });
+  return html;
+}
+
+async function slaEvaluatieOp(idx) {
+  var r = allRecords[idx]; if (!r) return;
+  var datum     = document.getElementById('ev-datum').value;
+  var conclusies= document.getElementById('ev-conclusies').value;
+  var hand      = document.getElementById('ev-hand').value;
+
+  // Lees maatregel opvolging
+  var allMaatregelen = [];
+  (r.corrig||[]).forEach(function(m,i){ allMaatregelen.push({type:'cor', i:i, m:m}); });
+  (r.prev||[]).forEach(function(m,i){ allMaatregelen.push({type:'prev', i:i, m:m}); });
+  allMaatregelen.forEach(function(item) {
+    var key = 'mv-'+item.type+'-'+item.i;
+    var okEl = document.getElementById(key+'-ok');
+    var dEl  = document.getElementById(key+'-datum');
+    if (okEl) item.m.gedaan = okEl.checked;
+    if (dEl)  item.m.datumUitv = dEl.value;
+  });
+
+  r.evalDatum       = datum;
+  r.evalConclusies  = conclusies;
+  r.evalHandtekening= hand;
+
+  try {
+    var token = await getToken();
+    var lijst = Object.values(CFG.lists).find(function(l){ return l.naam === r.school; });
+    if (lijst && r.spId) {
+      var body = {
+        EvalDatum:        datum,
+        EvalConclusies:   conclusies,
+        EvalHandtekening: hand,
+        CorrigMaatregelen: JSON.stringify(r.corrig),
+        PrevMaatregelen:   JSON.stringify(r.prev)
+      };
+      await fetch(
+        'https://graph.microsoft.com/v1.0/sites/'+CFG.siteId+'/lists/'+lijst.id+'/items/'+r.spId+'/fields',
+        { method:'PATCH', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify(body) }
+      );
+      alert('✅ Evaluatie opgeslagen!');
+      openDrawer(idx);
+    }
+  } catch(e) { alert('Fout: ' + e.message); }
+}
+
+// ── MAATREGELEN TAB ───────────────────────────────────────────────────
+function renderMaatregelen() {
+  var type   = document.getElementById('fMType').value;
+  var school = document.getElementById('fMSchool').value;
+  var stat   = document.getElementById('fMStatus').value;
+
+  var rows = [];
+  allRecords.forEach(function(r) {
+    if (school && r.school !== school) return;
+    var lijsten = [];
+    if (!type || type === 'cor') (r.corrig||[]).forEach(function(m){ lijsten.push({type:'cor', m:m, r:r}); });
+    if (!type || type === 'prev') (r.prev||[]).forEach(function(m){ lijsten.push({type:'prev', m:m, r:r}); });
+    lijsten.forEach(function(item){
+      if (stat === 'open' && item.m.gedaan) return;
+      if (stat === 'gedaan' && !item.m.gedaan) return;
+      rows.push(item);
+    });
+  });
+
+  if (!rows.length) {
+    document.getElementById('maatrWrap').innerHTML = '<div class="emptyState"><div style="font-size:36px;margin-bottom:.75rem">📋</div>Geen maatregelen gevonden.</div>';
+    return;
+  }
+
+  var html = '<table class="rtbl"><thead><tr><th>Type</th><th>Maatregel</th><th>School</th><th>Registratie</th><th>Verantw.</th><th>Deadline</th><th>Uitvoerdatum</th><th>Status</th></tr></thead><tbody>';
+  rows.forEach(function(item) {
+    var m = item.m; var r = item.r;
+    var gedaanBadge = m.gedaan
+      ? '<span class="badge b-afgsl">✓ Gedaan</span>'
+      : '<span class="badge b-open">Openstaand</span>';
+    html += '<tr>' +
+      '<td><span style="font-size:11px;padding:2px 6px;border-radius:4px;background:' + (item.type==='cor'?'#e8f0fb':'#f0f8e8') + ';color:' + (item.type==='cor'?'#0C447C':'#3B6D11') + '">' + (item.type==='cor'?'Corrigerend':'Preventief') + '</span></td>' +
+      '<td style="max-width:200px;font-size:13px">' + (m.maatregel||'—') + '</td>' +
+      '<td><span class="schoolTag">' + r.school + '</span></td>' +
+      '<td style="font-family:monospace;font-size:12px">' + (r.regnr||'—') + '</td>' +
+      '<td style="font-size:13px">' + (m.verantw||'—') + '</td>' +
+      '<td style="font-size:13px">' + (m.datum||'—') + '</td>' +
+      '<td style="font-size:13px">' + (m.datumUitv||'—') + '</td>' +
+      '<td>' + gedaanBadge + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('maatrWrap').innerHTML = html;
 }
 
 // ── EXPORT ────────────────────────────────────────────────────────────
