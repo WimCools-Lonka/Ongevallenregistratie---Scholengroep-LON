@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kolommen toevoegen — Scholengroep Londerzeel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:15px;background:#f0f4f8;color:#1a1a1a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.1);padding:2rem;max-width:640px;width:100%}
+h1{font-size:20px;font-weight:700;color:#0C447C;margin-bottom:.25rem}
+.sub{font-size:13px;color:#888;margin-bottom:1.5rem}
+.lijstCard{border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin-bottom:.75rem}
+.lijstNaam{font-weight:600;font-size:14px;margin-bottom:.5rem}
+.kolRow{display:flex;align-items:center;gap:.5rem;padding:4px 0;font-size:13px}
+.dot{width:10px;height:10px;border-radius:50%;background:#ddd;flex-shrink:0}
+.dot.ok{background:#22c55e}
+.dot.err{background:#ef4444}
+.dot.bezig{background:#f59e0b}
+.btnP{background:#0C447C;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;margin-top:1rem}
+.btnP:hover{background:#185FA5}
+.btnP:disabled{background:#aaa;cursor:not-allowed}
+.notice{border-radius:8px;padding:.75rem 1rem;font-size:13px;margin-top:1rem}
+.n-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.n-err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.n-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #ccc;border-top-color:#0C447C;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔧 Kolommen toevoegen</h1>
+  <div class="sub">Voegt evaluatievelden toe aan de 3 SharePoint lijsten van Scholengroep Londerzeel</div>
+
+  <div id="lijsten"></div>
+  <div id="status"></div>
+  <button class="btnP" id="btnStart" onclick="start()">▶ Kolommen toevoegen</button>
+</div>
+
+<script>
+var CFG = {
+  clientId:  '8976d00b-226c-404d-a1ab-811cea7c93d7',
+  tenantId:  '655d15e1-e5fc-4868-8462-8463dc0ff014',
+  siteId:    'londerwijs.sharepoint.com,89dc1d04-ed8d-4038-82c7-0428db0483e7,4d5ecb10-38f0-422f-b892-af256a5da6fc',
+  lists: [
+    { naam: 'Centrumschool',   id: 'e0d4744b-a560-48b8-a958-6616d6f4cd3e' },
+    { naam: 'Kouterschool',    id: '1f069649-fb67-41ae-a963-03637ff33377' },
+    { naam: 'School Ter Elst', id: '1b6e3d58-7a5a-4fa3-9ff6-606792703e59' }
+  ],
+  scopes: ['https://graph.microsoft.com/Sites.ReadWrite.All']
+};
+
+// Kolommen die moeten worden toegevoegd
+var KOLOMMEN = [
+  { naam: 'EvalDatum',        type: 'dateTime', label: 'Evaluatiedatum' },
+  { naam: 'EvalConclusies',   type: 'text',     label: 'Conclusies bespreking' },
+  { naam: 'EvalHandtekening', type: 'text',     label: 'Handtekening voorzitter' }
+];
+
+var msalApp = null;
+var token   = null;
+
+// Render lijsten UI
+function renderUI() {
+  var html = '';
+  CFG.lists.forEach(function(lijst) {
+    html += '<div class="lijstCard"><div class="lijstNaam">' + lijst.naam + '</div>';
+    KOLOMMEN.forEach(function(kol) {
+      html += '<div class="kolRow" id="row-' + lijst.id + '-' + kol.naam + '">'
+            + '<div class="dot" id="dot-' + lijst.id + '-' + kol.naam + '"></div>'
+            + '<span>' + kol.naam + '</span>'
+            + '<span style="color:#aaa;font-size:12px">(' + kol.label + ')</span>'
+            + '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('lijsten').innerHTML = html;
+}
+
+function setDot(lijstId, kolNaam, staat) {
+  var el = document.getElementById('dot-' + lijstId + '-' + kolNaam);
+  if (el) { el.className = 'dot ' + staat; }
+}
+
+async function getToken() {
+  // Initialiseer MSAL inline (zonder externe script tag — gebruik fetch naar login endpoint)
+  // We gebruiken de implicit flow via popup voor het tooltje
+  return new Promise(function(resolve, reject) {
+    var url = 'https://login.microsoftonline.com/' + CFG.tenantId
+            + '/oauth2/v2.0/authorize'
+            + '?client_id=' + CFG.clientId
+            + '&response_type=token'
+            + '&redirect_uri=' + encodeURIComponent(window.location.href.split('?')[0])
+            + '&scope=' + encodeURIComponent(CFG.scopes.join(' '))
+            + '&response_mode=fragment'
+            + '&nonce=' + Math.random().toString(36).substr(2);
+
+    var popup = window.open(url, 'login', 'width=500,height=600');
+    var timer = setInterval(function() {
+      try {
+        if (popup.closed) {
+          clearInterval(timer);
+          reject(new Error('Popup gesloten'));
+          return;
+        }
+        var hash = popup.location.hash;
+        if (hash && hash.indexOf('access_token') !== -1) {
+          clearInterval(timer);
+          popup.close();
+          var params = {};
+          hash.substring(1).split('&').forEach(function(p) {
+            var kv = p.split('=');
+            params[kv[0]] = decodeURIComponent(kv[1]);
+          });
+          resolve(params.access_token);
+        }
+      } catch(e) { /* cross-origin, wacht */ }
+    }, 500);
+  });
+}
+
+async function kolonBestaatAl(lijstId, kolNaam, tok) {
+  var url = 'https://graph.microsoft.com/v1.0/sites/' + CFG.siteId
+          + '/lists/' + lijstId + '/columns';
+  var r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok } });
+  if (!r.ok) return false;
+  var d = await r.json();
+  return (d.value || []).some(function(c) {
+    return c.name === kolNaam || c.displayName === kolNaam;
+  });
+}
+
+async function voegKolomToe(lijstId, kolNaam, kolType, tok) {
+  var body;
+  if (kolType === 'dateTime') {
+    body = { name: kolNaam, dateTime: {} };
+  } else {
+    body = { name: kolNaam, text: { allowMultipleLines: true } };
+  }
+  var url = 'https://graph.microsoft.com/v1.0/sites/' + CFG.siteId
+          + '/lists/' + lijstId + '/columns';
+  var r = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    var err = await r.json().catch(function() { return {}; });
+    throw new Error(err.error?.message || r.status);
+  }
+}
+
+async function start() {
+  var btn = document.getElementById('btnStart');
+  var st  = document.getElementById('status');
+  btn.disabled = true;
+  st.innerHTML = '<div class="notice n-info"><span class="spinner"></span> Aanmelden bij Microsoft 365...</div>';
+
+  try {
+    token = await getToken();
+  } catch(e) {
+    st.innerHTML = '<div class="notice n-err">Aanmelden mislukt: ' + e.message + '</div>';
+    btn.disabled = false;
+    return;
+  }
+
+  st.innerHTML = '<div class="notice n-info"><span class="spinner"></span> Kolommen worden toegevoegd...</div>';
+
+  var totaal = 0, toegevoegd = 0, bestond = 0, fouten = 0;
+
+  for (var i = 0; i < CFG.lists.length; i++) {
+    var lijst = CFG.lists[i];
+    for (var j = 0; j < KOLOMMEN.length; j++) {
+      var kol = KOLOMMEN[j];
+      totaal++;
+      setDot(lijst.id, kol.naam, 'bezig');
+      try {
+        var bestaat = await kolonBestaatAl(lijst.id, kol.naam, token);
+        if (bestaat) {
+          setDot(lijst.id, kol.naam, 'ok');
+          bestond++;
+        } else {
+          await voegKolomToe(lijst.id, kol.naam, kol.type, token);
+          setDot(lijst.id, kol.naam, 'ok');
+          toegevoegd++;
+        }
+      } catch(e) {
+        setDot(lijst.id, kol.naam, 'err');
+        fouten++;
+        console.error(lijst.naam, kol.naam, e.message);
+      }
+    }
+  }
+
+  var kleur = fouten > 0 ? 'n-err' : 'n-ok';
+  var msg = '✅ Klaar! ' + toegevoegd + ' kolommen toegevoegd, '
+          + bestond + ' bestonden al'
+          + (fouten > 0 ? ', <strong>' + fouten + ' fouten</strong> (zie console)' : '') + '.';
+  st.innerHTML = '<div class="notice ' + kleur + '">' + msg + '</div>';
+  btn.disabled = false;
+  btn.textContent = '↻ Opnieuw uitvoeren';
+}
+
+renderUI();
+</script>
+</body>
+</html>
